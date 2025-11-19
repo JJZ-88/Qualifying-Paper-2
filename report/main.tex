@@ -8,7 +8,7 @@
 % Note: You will get an empty bibliography warning when compiling until you include a citation.
 
 \documentclass[12pt]{article}
-\usepackage[commenters={OA,DJM}]{shortex} % replace OA with your initials
+\usepackage[commenters={JJZ}]{shortex} % replace OA with your initials
 \usepackage[round]{natbib}
 \usepackage[margin=2.5cm]{geometry}
 \newcommand{\email}[1]{\href{mailto:#1}{#1}}
@@ -30,7 +30,7 @@
 
 % your title/author/date information go here
 \title{\LaTeX\ Template for STAT 548 Qualifying Paper Report} % replace with your title, a meaningful title
-\author{Daniel J. McDonald} % replace with your name
+\author{Justin J Zhang} % replace with your name
 \date{\today} % replace with your submission date
 
 
@@ -38,182 +38,169 @@
 \begin{document}
 \maketitle
 
-You can remove everything from here to the end of the document when you start
-writing your report.
+\newpage
 
-But do read through it first to get an idea of how to use the style file and 
-some best practices for writing the report.
+\section{Introduction}
+Since the industrial revolution, the earth has seen a gradual increase in carbon emissions, leading to climate change and an increase in yearly natural disasters.
+Calamities like flooding and forest fires are becoming increasingly common, creating a need to carefully monitor and predict these events for human safety.
+An example is the increasing possibility of drought-like conditions in the UK, which is monitored through temperature and dryness metrics, which we denote $X_t, Y_T$ respectively. 
+Since we only care about how these variables behave at high temperature and dryness, we can use Extreme Value Theory (EVT). 
+Our quantity of interest is the \textit{return curve}, given in \cref{eq: rc}
+\begin{equation} \label{eq: rc}
+  RC_t(p) = \{ (x, y) \in \mathbb{R}^2 \ |\  \mathbb{P}(X_t > x, Y_t > y) = p \}
+\end{equation}
+This curve represents the temperature, dryness pairs that have a $p$-probability of occurence, illustrating the joint tail behaviour. 
+Of particular importance is capturing the dependence relation between temperature and dryness since common sense dictates their are positively correlated.
+When dependence is stationary, $RC_t(p)$ is independent of the time $t$, however, in practice data exhibits non-stationarity, meaning the return curve changes over time.
+There are a few pre-existing methods that account for non-stationarity, however these all assume asymptotic dependence in the data, when there is often asymptotic independence.
 
-\section{Requirements}\label{sec:req}
+\textit{Modelling non-stationarity in asymptotically independent extremes} by Murphy-Barltrop and Wadsworth, hencefoth denoted MBW, propose 
+three methods to quantify dependence for arbitrary asymptotic behvaiour: quantile regression, smooth polynomials, and GAM. In the following sections, we will provide an overview of existing
+relevant extreme value theory, introduce and explain the three methods of dependence estimation,touch on limitations, and provide a simulation study.
 
-As described on my website
-\url{https://dajmcdon.github.io/teaching/stat548.html}, the report should
-contain three main sections:
+\section{Background Works}
+Though there has not been any methods developed for our specific use case, there exists theory on modelling non-stationarity for univariate extremes (Youngman, 2019), bivariate extremes (REFERNCE), which are prudent to give background for.
 
-\bdesc
-\item[1. Summary ($\sim$3 pages)] The first section of the report should provide a
-summary of the paper and the problem(s) it addresses, including its relationship
-to any previous work, its major contributions (e.g., novel techniques,
-algorithmic developments, problem formulations, theoretical contributions), and
-any limitations or shortcomings (e.g., restrictive assumptions, computational
-constraints, flawed methodology). The aim of this section is for you to
-synthesize the findings of a body of work and clearly present the important
-points.
+  \subsection{Non-Stationarity in Univariate Extremes}
+  In this section, let $\{ Y_t \}$ be a non-stationary process with covariates $z_t \in \mathbb{R}^g$.
+  We define \textit{exceedences} to be $Y_t - u$ for some threshold $u \in [0, 1]$. In stationary settings, 
+  (normalized) exceedences are modeled by the \textit{generalized pareto distribution} (GPD) through the Pickands-Balkema-de Haan theorem (Pickands, 1975). A GPD is parameterized by a scale $\tau \in (0, \infty)$ and shape $\xi \in \mathbb{R}$. Analogously, for our non-stationary process, the left side of \cref{eq: gpd} shows that exceedences are likewise approximated by a GPD, however with scale and shape parameters defined in terms of $z_t$ (Youngman, 2019). 
+  These are estimated through an invertible link function $h(x)$ and general additive model (GAM).
+  \begin{equation} \label{eq: gpd}
+    Y_t - u \ |\ Y_t > u, z_t \sim \GP(\tau(z_t), \xi(z_t)) \qquad h(\zeta(z_t)) = \beta_0 + \sum_{k = 1}^g \sum_{p = 1}^{P_k} \beta_{kp}b_{kp}(z_{kt})
+  \end{equation}
+  For the GAM formulation in the right side of \cref{eq: gpd}, $b_{kp}$ are specified basis functions and $\beta_0, \beta_{kp}$ are coefficients estimated through penalized likelihood for each basis function $k = 1,\dots, g$ and basis dimension $p = 1,\dots, P_k$. 
+  For example, we can take $h(x) = \log(x)$ and we would be fitting a GAM to $\exp(h(\zeta(z_t)))$ to obtain the parameter $\zeta(z_t)$.
+  Note since $\tau(z_t) \in (0, \infty)$ we must have its link function $h_\tau^{-1}(x)$ strictly positive. 
 
-\item[2. Mini-proposal(s) for research projects] Each proposal should describe a
-research project that applies, extends, generalizes, adapts, or addresses
-shortcomings of the QP. Seemingly unrelated ideas inspired by the original QP
-are also fine. You may write more than one proposal, but you must write at least
-one. A proposal should concisely describe: the primary problem to be addressed;
-an approach (or multiple approaches) for addressing the problem; any technical
-or conceptual sub-problems; the potential impact of the project. You are not
-expected to pursue any of these projects (though we can talk more if you would
-like to). The aim of this section is to get you thinking creatively about
-research, and to begin developing the skills necessary for writing research
-proposals. Each proposal should be no more than \textbf{2 pages max}.
+  The functional representation of scale and shape parameters allows us to account for the change in distributional shape and variation of exceedences over time. 
+  These changesn are caused by non-stationarity in the underluying process.
+  Using GAMs ensures smoothness of the parameters over time, meaning that expected exceedances will not drastically change between time-steps.
 
-\item[3. QP specific project results] Each potential QP listed below has a brief
-description of a related project. We will discuss the project in detail in our
-initial meeting, and we can meet again (as many times as necessary) before the
-report due date. Your grade will not be affected by how good the results look,
-whether your approach improves on past work, or whether you achieve the initial
-goal of the project. I will use this project to evaluate your research 
-potential, which includes (among other aspects):
-  \bitem
-  \item clearly formulating a research question;
-  \item setting up a useful mathematical framework for the problem;
-  \item thinking creatively and independently to develop a solution;
-  \item relating the problem to existing work, in other fields if necessary;
-  \item being resourceful and asking questions when necessary;
-  \item learning from and moving past the inevitable setbacks;
-  \item reformulating the research problem when necessary;
-  \item implementing new methods in code (when applicable);
-  \item choosing appropriate experiments and metrics;
-  \item communicating and reflecting on progress, setbacks, and results;
-  \item thinking of future research directions.
-  \eitem
-\edesc
+  \subsection{Bivariate EVT}
+  In this section, let $(X, Y)$ be a random vector representing a stationary distribution of a stochastic process. 
+  We note that EVT can be done in higher dimensions but we will restrict our analysis in this paper to the bivariate case.
+  We will assume the data exhibits standard exponential margins for $X, Y$, i.e. $f_X(z) = f_Y(z) = e^{-z}$. 
+  Otherwise, we can apply the probability integral transform (APPENDIX) to achieve this. Then for extreme thresholds $u$, 
+  the joint tail distribution can be modeled in terms of a \textit{slowly varying function} $L$ and \textit{coefficient of tail dependence} $\eta \in (0, 1]$ as shown in \cref{eq: stat joint} (Ledford, Tawn, 1996).
+   Though this equality holds as $u \uparrow 1$, the equation is a good approximation for joint tail probability when $u$ is reasonably high, say 0.95.
+  \begin{equation} \label{eq: stat joint}
+    \lim_{u \to \infty}\mathbb{P}(\min(X, Y) > u) = \lim_{u \to \infty} L(e^u)e^{-\frac{u}{\eta}} \qquad \lim_{x \to \infty} \frac{L(cx)}{L(x)} = 1, \quad c > 0
+  \end{equation}
+  Asymptotic dependence occurs when $\lim_{u \uparrow 1} L(e^u) = 0$ and $\eta = 1$, which together imply the joint distribution at high thresholds is non-zero. 
+  To illustrate \cref{eq: stat joint}, we can take the trivial example where $X, Y$ are independent, and with the standard exponential margins, we get for any $u$ that $\mathbb{P}(\min(X, Y) > u) = e^{-2u}$. 
+  In this case, $L(x) = 1$ is constant and $\eta = \frac{1}{2}$.
+  
+  Though this model captures both asymptotic independence and dependence, for the latter it fails to capture regions where one variable is more extreme than the other. 
+  To account for varying levels of extremeness, we build upon \cref{eq: stat joint} using different rays $w \in [0, 1]$ from the origin, shown in \cref{eq: stat joint lambda}. 
+  The coefficient of tail dependence is replaced with the \textit{angular dependence function} $\lambda(w)$ (Wadsworth, Tawn, 2013). 
+  \begin{equation} \label{eq: stat joint lambda}
+    \lim_{u \to \infty}\mathbb{P}\left(\min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > u \right) = \lim_{u \to \infty} L(e^u; w)e^{-\lambda(w) u}, \qquad \lambda(w) \geq \max(w, 1 - w)
+  \end{equation}
+
+  \subsection{Angular Dependence Function}
+  In this section, let $(X, Y)$ be as before. We will delve further into the theory of $\lambda(w)$, which was first introduced in (Wadsworth, Tawn, 2013) and is given in \cref{eq: stat joint lambda}. 
+  The more general definition considers $\kappa(\alpha, \beta)$ as the angular dependence, however, we use the simple (normalized) formualation with $\alpha = w, \beta = 1 - w$ as the ray.
+  To start, we wish to define some properties for $\lambda(w)$. We call random variable $X, Y$ \textit{positive quandrant dependent} if $\forall (x, y) \in \mathbb{R}^2, \; \mathbb{P}(X \leq x, Y \leq y) \geq \mathbb{P}(X \leq x)\mathbb{P}(Y \leq y)$
+  \begin{proposition} \label{prop: lambda}
+    Let $\lambda(w)$ be as defined in \cref{eq: stat joint lambda}. $w, w_1, w_2 \in [0, 1]$.
+    \begin{enumerate}
+      \item $\lambda(1) = \lambda(0) = 1$.
+      \item $\max(w, 1 - w) \leq \lambda(w, 1 - w)$.
+      \item Under positive quadrant dependence, $\lambda(w) \leq 1$.
+      \item $\frac{w_1}{\lambda(w_1)} \leq \frac{w_2}{\lambda(w_2)}$ and $\frac{1 - w_1}{\lambda(w_1)} \geq \frac{1 - w_2}{\lambda(w_2)}$
+    \end{enumerate}
+  \end{proposition}
+
+  Proofs provided in (APPENDIX). The first three properties give boundary conditions (corresponding to independence) and provide bounds for angular dependence.
+  The fourth is used to prove theoretically viability of the ADF in MBW.
+  Dependence is highest when $\lambda(w) = \max(w, 1 - w)$, and independence occurs when $\lambda(w) = 1$. In general, $\lambda(w)$ is convex with minimum at $\max(w, 1 - w)$.
+  The upper bound on dependence only holds with positive quandrant dependence, which is necessary to ensure the joint tail probability is non-zero.
+
+  In relation to EVT, considering the conditional extremal probability of (X, Y) with angular dependence, there is a simple representation analogous to the memory property of exponential, as shown in \cref{eq: cond lambda deriv}.
+  \begin{equation} \label{eq: cond lambda deriv}
+    \lim_{u \to \infty}\mathbb{P}\left(\min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > tu \ \bigg |\ \min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > u \right) = e^{-\lambda(w) t}, \quad t \geq 1
+  \end{equation}
+ 
+  To estimate $\lambda(w)$, MBW use the \textit{Hill Estimator}. For a given threshold $u$, $v_{(1)},\dots,v_{(k)}$ are the ordered exceedences of $u$ with $v_i = \min\left(\frac{x_i}{w}, \frac{y_i}{1 - w} \right)$. We can then define the estimate $\hat{\lambda}$ as in \cref{eq: hill}. 
+  For consistency of the hill estimator, we need the number of exceedences to approach $\infty$ as the total observations tend to $\infty$, but the proportion of exceedences to tend to 0.
+  In practice, this assumption can be reasonably satisfied (Resnick).
+  \begin{equation} \label{eq: hill}
+    \hat{\lambda} = \left( \frac{1}{k - 1}\sum_{i = 1}^{k - 1} \log \frac{v_{(i)}}{v_{(k)}} \right)^{-1}
+  \end{equation}
+  
+
+\section{Main Contributions}
+  We have seen models that attempt to model joint extremes under a variety of conditions. 
+  In this section, we focus on modelling the specific use case of non-stationarity with asymptotic independence, which MBW argue is a novel problem, through the ADF.
+
+  For the remainder of this paper, let $\{ X_t, Y_t\}$  be a non-stationary process with standard, exponential margins (again, these can be obtained with probability integral transform).  
+  Moreover, assume that dependent on some covariates $Z_t \in \mathbb{R}^g$, that $\{ X_t, Y_t \ |\ Z_t\}$ is a stationary process.
+  Let $K_{w, t} = \min\left(\frac{X_t}{w}, \frac{Y_t}{1 - w} \right)$ be the \text{mini-projection} onto ray $w$. We are looking to estimate $\lambda$ in \cref{eq: cond lambda main}.
+  \begin{equation} \label{eq: cond lambda main}
+    \mathbb{P}(K_{w, t} > v \ |\ K_{w, t} > u, Z_t = z_t) \approx e^{-(v - u)\lambda(w \ |\ z_t)} ,\quad v > u
+  \end{equation}
+
+  Using the hill estimator, we would get a pointwise estimate for each covariate $Z_t = z_t$ (which we condition on). 
+  We often do not have enough realizations for each $Z_t = z_t$ and so the pointwise estimates will be poor. Moreover, $\lambda(w)$ will not be a smooth function.
+  \cref{eq: cond lambda main} also shows that the exceedences $K_{w, t} - u_{w, t} \ |\ K_{w, t} > u_{w, t}, z_t$ are exponentially distributed with rate $\lambda(w \ |\ z_t)$ through uniqueness of CDF. 
+  This representation can lead to simple likelihood estimates of the ADF but due to non-stationarity, we have an estimate for each time-step, and so the resulting parameter estimates are not consistent (APPENDIX MAYBE). 
+  As such, MBW propose estimating $\lambda(w)$ with a quantile-based method, Bernstein-Bezier polynomials, and GAMs, which we introduce in this section.
+
+  \subsection{Quantile-based Estimator}
+    Our first method for estimating $\lambda(w \ |\ z_t)$ is a quantile method using \cref{eq: cond lambda main}.
+    Consider extreme quantiles $q_1 < q_2 < 1$ (generally greater than 0.9). Let $w \in [0, 1]$ be an arbitrary ray.
+    For each time-step $t$, we can find $u_{w, t}$ with $ \mathbb{P}(K_{w, t} > u_{w, t}  \ |\  Z_t = z_t) = 1 - q_1$, and analogously for $v_{w, t}$ and $q_2$.
+    Because we have $1 - q_2 < 1 - q_1$, by monotonicity of CDF we have $v_{w, t} \geq u_{w, t}$ for each $t$. 
+    Moreover, assuming strict monotonicity, we have $v_{w, t} > u_{w, t}$, and can use \cref{eq: cond lambda main} to get the estimate $\hat{\lambda}_q$, given in \cref{def: lambda qr}.
+    \begin{align} 
+      && e^{-(v_{w, t} - u_{w, t}) \lambda(w \ |\ z_t)} &= \mathbb{P}(K_{w, t} > v_{w, t} \ |\ K_{w, t} > u_{w, t}, Z_t = z_t) \\
+      && &= \frac{\mathbb{P}(K_{w, t} > v_{w, t}  \ |\ , Z_t = z_t)}{\mathbb{P}(K_{w, t} > u_{w, t}  \ |\ , Z_t = z_t)}  \\
+      && &= \frac{1 - q_2}{1 - q_1} \\
+      \implies && \hat{\lambda}_q (w \ |\ z_t) &= -\frac{1}{v_{w, t} - u_{w, t}} \log \left(\frac{1 - q_2}{1 - q_1}\right) \label{def: lambda qr}
+    \end{align}
+
+    We now have a way to estimate $\lambda(w)$ through a sequence of thresholds $\{ u_{w, t}, v_{w, t}\}$ conditional on $z_t$ and corresponding quantiles. It remains to determine how to get the thresholds from the data.
+    This is commonly done through quantile regression. 
+    We use the standard assumption of linearity in the covariates to estimate $u_{w, t} = z_t^T \pi_u$, where $\pi_u \in \mathbb{R}^g$ is estimated by minimizing the expected loss $\argmin_{\pi \in \mathbb{R}^g} \sum_{i = 1}^n (K_{w, t} - z_t^T\pi)(q_i - \1 _{K_{w, t} < z_t^T\pi})$ (Koenker, 2017) and analogously for $v_{w, t}$.
+
+    A major weakness of this method is that quantiles $q_1, q_2$ are modelled separately, so we cannot guarantee $v_{w, t} \geq u_{w, t}$. 
+    To mitigate this issue, MBW propose to use GAMs from (Andre, 2023), modelling exceedences as a GPD, shown in \cref{eq: gpd biv}. 
+    This is akin to the formulation in \cref{eq: gpd} with constant shape parameter and using link function $h(\tau(z_t)) = \log(\tau(z_t))$. 
+    We take some base threshold $u_{w, t}^*$ correponding to quantile $q < q_1 < q_2$, estimated using the process described above. 
+    We can then estimate $u_{w, t}, v_{w, t}$ from the fitted GPD model as its $\frac{q_1 - q}{1 - q}$ and $\frac{q_2 - q}{1 - q}$ quantiles respectively.
+    MBW show through simulation that these GAM quantile estimates give better estimates of $\lambda(w)$ than standard quantile regression.
+    \begin{equation} \label{eq: gpd biv}
+      K_{w, t} - u_{w, t}^* \ |\ K_{w, t} > u_{w, t}^*, Z_t = z_t \sim \GP(\tau(z_t), \xi)
+    \end{equation}
+
+    Our estimates $\hat{\lambda}_q$ are dependent the quantiles $q_1, q_2$ chosen. In fact (EXPLANATION). Hence, MBW use a set of pairs of quantiles $\{ q_{1j}, q_{2j}\}_{j = 1}^m$ with each $q_{1j} < q_{2j} < 1, \; j=1,\dots,m$. 
+    We can then take the estimator $\hat{\lambda}_{qave}$ as shown in \cref{def: lambda qr ave} by averaging over individual $\hat{\lambda}_q$ estimates. 
+    MBW also show that this estimator outperforms estimators obtained by a single quantile pair.
+    \begin{equation} \label{def: lambda qr ave}
+      \hat{\lambda}_{qave}(w \ |\ z_t) = \frac{1}{m} \sum_{j = 1}^m \hat{\lambda}_q(w \ |\ z_t)
+    \end{equation}
+
+  \subsection{Bernstein-Bezier Polynomial Estimator}
+    
 
 
-The report should be submitted as a GitHub repository based on the template
-\href{https://github.com/dajmcdon/qp-template}{here}. The template includes a LaTeX
-style file that should be used for the report. (Detailed instructions for usage
-can be found in the repository's README file.) Any experimental/numerical
-results should be reproducible. All code should be reusable, clearly
-commented/documented, and exist in the \texttt{src/} folder of the same GitHub
-repository to which you give me access as a collaborator. Code can be in any
-language you wish, though my strong preference is for \texttt{R} or
-\texttt{python}.
-
-
-The remainder of this document demonstrates the style file and provides some
-best practices for writing the report. 
-
-\section{Introduction}\label{sec:intro}
-
-We write some math for fun:
-
-\[
-\label{eq:1}
-\int_{-\infty}^{\infty} \frac{1}{\sqrt{2\pi}|\Sigma|^{n/2}}
-\exp\cbra*{-\frac{1}{2}(y - \mu)\T \Sigma^{-1} (y-\mu)} \d y = 1.
-\]
-
-We encourage the use of the various macros defined in
-\href{https://github.com/trevorcampbell/shortex/}{ShorTeX},
-so do your best. It makes things easier to read, but also provides lots of
-necessary mathematics definitions that render nicely. 
-
-Be careful with things like KL divergence and conditional probability
-statements. I find that 
-\[\KL(q\ \Vert\ p)\]
-looks much better than 
-\[\KL(q||p),\] 
-and I similarly prefer 
-\[
-Y\ |\ X \sim \Norm(X,\ \sigma^2) 
-\quad\textrm{to}\quad Y | X \sim \Norm(X,\sigma^2).
-\] 
-Note that the reals are $\reals^p$. There is also
-\[
-\shbeta = \argmin_{\beta \in \reals^p} \frac{1}{2n}\norm{\sky - \skX\beta}_2^2 + 
-\lambda \norm{\beta}_1,
-\]
-and (with automatic sizing of the norm),
-\[
-\shbeta = \argmin_{\beta \in \reals^p} \frac{1}{2n}\norm*{\frac{y}{1} - X\beta}_2^2 + 
-\lambda \norm*{\beta}_1.
-\]
-
-Note that the indicator function looks like $\1\{\cdot\}$, but I sometimes
-prefer $\mathbf{1}\{\cdot\}$.
 
 
 
 
-\subsection{Cleveref}\label{sec:clever}
 
-We prefer to use cleveref to get nice references to things. For example, you can
-say that \cref{eq:1} was printed in \cref{sec:intro}. No need to write out
-things like ``Section''.
 
-\section{Some best practices}
 
-Some of these are taken from
-\href{http://faculty.marshall.usc.edu/Jacob-Bien/papers/manuscript-checklist.pdf}{Jacob
-Bien}. Note the use of the ShorTeX itemize environment style below.
 
-\bitem
-\item Section titles should be all title case or all sentence case. Don't mix and match.
-\item I prefer data set to dataset.
-\item I prefer data to be singular. There remains debate on this point. When you
-use the word ``datum'' in a sentence, then we can argue. Data is a mass noun,
-like ``information''. We don't say ``How many data are enough?'', we say ``How much
-data is enough.'' Enough said.  
-\item Terminology is lower case, unless it's a person's name: \Nystrom extension
-and lasso.
-\item Equations are parts of the sentence. Displayed equations almost always
-have a comma or period after. Very rarely is there a colon or comma \emph{before}
-a displayed equation.
-\item Don't start sentences with math (``$\Sigma$ is the covariance of
-$\skX$.'') or the name of a software package that's lowercase, \eg
-``\texttt{glmnet} is my favourite software''.
-\item Don't use contractions.
-\item No need to put dollar signs around numbers: 12 versus $12$.
-\item DO put dollar signs around math: $p$ not p.
-\item Use $x\gg y$ not $x >>y$.
-\item Careful with parentheticals and references. Wrong: (see, \eg
-\citet{Akaike1973}). Right: (see, \eg \citealp{Akaike1973}).
-\item Never use \texttt{eqnarray}, always use \texttt{align}. Note that ShorTeX
-makes \verb+\[   \]+ into an align environment, so you can just use that always.
-\item For editing purposes, it is much better if the text is hard-wrapped rather
-than soft wrapped.
-\eitem
+  \subsection{Limitations}
 
-\subsection{Tables}
 
-\Cref{tab:1} is a nice looking table. Strive for these.
 
-\btab
-\bcent
-\btabr{@{}lr@{}}
-\toprule
-Ingredient & Quantity\\
-\midrule
-Fusili & 100 g\\
-Eggs & 2\\
-Salt & 1 tsp\\
-Guanciale & 50 g\\
-Pepper & \nicefrac{1}{2} tsp\\
-Grated parmesan & \nicefrac{1}{4} c\\
-\bottomrule
-\etabr
-\caption{This is a nice looking table. It might make carbonara.}
-\label{tab:1}
-\ecent
-\etab
 
-\section{Discussion} 
+
+\newpage
+\section{test}
 
 We made amazing contributions to the world of musical fractal pasta 
 \citep{McDonald2017,Tibshirani2013}. We use Natbib, so be sure to use
