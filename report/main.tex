@@ -29,7 +29,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % your title/author/date information go here
-\title{\LaTeX\ Template for STAT 548 Qualifying Paper Report} % replace with your title, a meaningful title
+\title{Estimating Extreme Events under Non-Stationarity \\
+  \large STAT548 Qualifying Paper 2} % replace with your title, a meaningful title
 \author{Justin J Zhang} % replace with your name
 \date{\today} % replace with your submission date
 
@@ -42,115 +43,134 @@
 
 \section{Introduction}
 Since the industrial revolution, the earth has seen a gradual increase in carbon emissions, leading to climate change and an increase in yearly natural disasters.
-Calamities like flooding and forest fires are becoming increasingly common, creating a need to carefully monitor and predict these events for human safety.
-An example is the increasing possibility of drought-like conditions in the UK, which is monitored through temperature and dryness metrics, which we denote $X_t, Y_T$ respectively. 
+Calamities like floods and forest fires are becoming increasingly common, creating a need to carefully monitor and predict these events for human safety.
+An example is the increasing possibility of forest fire conditions, which is monitored through temperature $X_t$ and dryness $Y_t$ metrics.
 Since we only care about how these variables behave at high temperature and dryness, we can use Extreme Value Theory (EVT). 
 Our quantity of interest is the \textit{return curve}, given in \cref{eq: rc}
 \begin{equation} \label{eq: rc}
   RC_t(p) = \{ (x, y) \in \mathbb{R}^2 \ |\  \mathbb{P}(X_t > x, Y_t > y) = p \}
 \end{equation}
-This curve represents the temperature, dryness pairs that have a $p$-probability of occurence, illustrating the joint tail behaviour. 
-Of particular importance is capturing the dependence relation between temperature and dryness since common sense dictates their are positively correlated.
+This curve represents the temperature, dryness pairs that have a $p$-probability of occurrence. 
+Of particular importance is capturing the dependence relation between temperature and dryness since common sense dictates they are positively correlated.
 When dependence is stationary, $RC_t(p)$ is independent of the time $t$, however, in practice data exhibits non-stationarity, meaning the return curve changes over time.
-There are a few pre-existing methods that account for non-stationarity, however these all assume asymptotic dependence in the data, when there is often asymptotic independence.
+There are a few pre-existing methods that account for non-stationarity in extremes, however these all assume asymptotic dependence when there is often asymptotic independence. In our motivating example, this means that extreme temperature and dryness occur independently.
 
-\textit{Modelling non-stationarity in asymptotically independent extremes} by Murphy-Barltrop and Wadsworth, hencefoth denoted MBW, propose 
-three methods to quantify dependence for arbitrary asymptotic behvaiour: quantile regression, smooth polynomials, and GAM. In the following sections, we will provide an overview of existing
-relevant extreme value theory, introduce and explain the three methods of dependence estimation,touch on limitations, and provide a simulation study.
+\textit{Modelling non-stationarity in asymptotically independent extremes} \citep{Murphy-Barltrop2024}, henceforth denoted MBW, propose 
+three methods to quantify dependence for arbitrary asymptotic behaviour: quantile regression, smooth polynomials, and GAM. 
+They then argue that their estimates perform well on non-stationary data that can be asymptotically dependent or independent.
+In the following sections, we will introduce the relevant
+EVT, explain the three methods of dependence estimation, touch on limitations, and do a case study.
 
 \section{Background Works}
-Though there has not been any methods developed for our specific use case, there exists theory on modelling non-stationarity for univariate extremes (Youngman, 2019), bivariate extremes (REFERNCE), which are prudent to give background for.
+Though there has not been any methods developed for our specific use case, there exists theory on modelling non-stationarity for univariate extremes, bivariate extremes, and angular dependence, which are prudent to give background for.
 
   \subsection{Non-Stationarity in Univariate Extremes}
-  In this section, let $\{ Y_t \}$ be a non-stationary process with covariates $z_t \in \mathbb{R}^g$.
-  We define \textit{exceedences} to be $Y_t - u$ for some threshold $u \in [0, 1]$. In stationary settings, 
-  (normalized) exceedences are modeled by the \textit{generalized pareto distribution} (GPD) through the Pickands-Balkema-de Haan theorem (Pickands, 1975). A GPD is parameterized by a scale $\tau \in (0, \infty)$ and shape $\xi \in \mathbb{R}$. Analogously, for our non-stationary process, the left side of \cref{eq: gpd} shows that exceedences are likewise approximated by a GPD, however with scale and shape parameters defined in terms of $z_t$ (Youngman, 2019). 
+  In this section, let $\{ Y_t \}$ be a non-stationary process with covariates $\boldsymbol{z_t} \in \mathbb{R}^g$.
+  We define \textit{exceedances} to be $Y_t - u$ for some threshold $u \in [0, 1]$. In stationary settings, 
+  (normalized) exceedances are modeled by the \textit{generalized pareto distribution} (GPD) through the Pickands-Balkema-de Haan theorem \citep{Pickands1981}. A GPD is parameterized by a scale $\tau \in (0, \infty)$ and shape $\xi \in \mathbb{R}$. Analogously, for our non-stationary process, the left side of \cref{eq: gpd} shows that exceedances follow a GPD, however with scale and shape parameters defined in terms of $\boldsymbol{z_t}$ \citep{Youngman2019}. 
   These are estimated through an invertible link function $h(x)$ and general additive model (GAM).
   \begin{equation} \label{eq: gpd}
-    Y_t - u \ |\ Y_t > u, z_t \sim \GP(\tau(z_t), \xi(z_t)) \qquad h(\zeta(z_t)) = \beta_0 + \sum_{k = 1}^g \sum_{p = 1}^{P_k} \beta_{kp}b_{kp}(z_{kt})
+    (Y_t - u \ |\ Y_t > u, \boldsymbol{z_t}) \sim \GP(\tau(\boldsymbol{z_t}), \xi(\boldsymbol{z_t})) \qquad h(\tau(\boldsymbol{z_t}) = \beta_0 + \sum_{k = 1}^g \sum_{p = 1}^{P_k} \beta_{kp}b_{kp}(z_{kt})
   \end{equation}
-  For the GAM formulation in the right side of \cref{eq: gpd}, $b_{kp}$ are specified basis functions and $\beta_0, \beta_{kp}$ are coefficients estimated through penalized likelihood for each basis function $k = 1,\dots, g$ and basis dimension $p = 1,\dots, P_k$. 
-  For example, we can take $h(x) = \log(x)$ and we would be fitting a GAM to $\exp(h(\zeta(z_t)))$ to obtain the parameter $\zeta(z_t)$.
-  Note since $\tau(z_t) \in (0, \infty)$ we must have its link function $h_\tau^{-1}(x)$ strictly positive. 
 
-  The functional representation of scale and shape parameters allows us to account for the change in distributional shape and variation of exceedences over time. 
-  These changesn are caused by non-stationarity in the underluying process.
+  For the GAM formulation in the right side of \cref{eq: gpd}, $b_{kp}$ are specified basis functions and $\beta_0, \beta_{kp}$ are coefficients estimated through penalized likelihood for $k = 1,\dots, g$ and basis dimension $p = 1,\dots, P_k$. 
+  For example, we can take $h(x) = \log(x)$ as the link function for $\tau(\boldsymbol{z_t})$. Holding $\xi(\boldsymbol{z_t})$ constant, we would be fitting each exceedance $Y_t - u$ to a GPD with scale parameter $\exp(h(\tau(\boldsymbol{z_t}))$ through the PDF by maximizing likelihood. The resulting fitted values are estimates of the parameter $\tau(\boldsymbol{z_t})$.
+  Since $\tau(z_t) \in (0, \infty)$, $h_\tau^{-1}(x)$ is strictly positive. 
+
+  The functional representation of scale and shape parameters allows us to account for the change in distributional shape and variation of exceedances over time. 
+  These changes are caused by non-stationarity in the underlying process.
   Using GAMs ensures smoothness of the parameters over time, meaning that expected exceedances will not drastically change between time-steps.
+  This GAM formulation will form the basis for fitting the models in our next section.
 
   \subsection{Bivariate EVT}
   In this section, let $(X, Y)$ be a random vector representing a stationary distribution of a stochastic process. 
   We note that EVT can be done in higher dimensions but we will restrict our analysis in this paper to the bivariate case.
   We will assume the data exhibits standard exponential margins for $X, Y$, i.e. $f_X(z) = f_Y(z) = e^{-z}$. 
-  Otherwise, we can apply the probability integral transform (APPENDIX) to achieve this. Then for extreme thresholds $u$, 
-  the joint tail distribution can be modeled in terms of a \textit{slowly varying function} $L$ and \textit{coefficient of tail dependence} $\eta \in (0, 1]$ as shown in \cref{eq: stat joint} (Ledford, Tawn, 1996).
-   Though this equality holds as $u \uparrow 1$, the equation is a good approximation for joint tail probability when $u$ is reasonably high, say 0.95.
+  Otherwise, we can apply the probability integral transform (\cref{app: pit}) to achieve this. Then 
+  the joint tail distribution can be modeled in terms of a \textit{slowly varying function} $L$ and \textit{coefficient of tail dependence} $\eta \in (0, 1]$ as shown in \cref{eq: stat joint} \citep{LedfordTawn1996}.
   \begin{equation} \label{eq: stat joint}
-    \lim_{u \to \infty}\mathbb{P}(\min(X, Y) > u) = \lim_{u \to \infty} L(e^u)e^{-\frac{u}{\eta}} \qquad \lim_{x \to \infty} \frac{L(cx)}{L(x)} = 1, \quad c > 0
+    \mathbb{P}(\min(X, Y) > u) =  L(e^u)e^{-\frac{u}{\eta}} \qquad \lim_{x \to \infty} \frac{L(cx)}{L(x)} = 1, \quad c > 0
   \end{equation}
-  Asymptotic dependence occurs when $\lim_{u \uparrow 1} L(e^u) = 0$ and $\eta = 1$, which together imply the joint distribution at high thresholds is non-zero. 
+
+  Asymptotic dependence occurs when $\lim_{u \to \infty} L(e^u) > 0$ and $\eta = 1$, which together imply the joint distribution at high thresholds is non-zero. 
+  Asymptotic independence occurs when either of the above conditions fails to hold.
   To illustrate \cref{eq: stat joint}, we can take the trivial example where $X, Y$ are independent, and with the standard exponential margins, we get for any $u$ that $\mathbb{P}(\min(X, Y) > u) = e^{-2u}$. 
-  In this case, $L(x) = 1$ is constant and $\eta = \frac{1}{2}$.
+  In this case, $L(x) = 1$ is constant and $\eta = \frac{1}{2}$, implying asymptotic independence.
   
-  Though this model captures both asymptotic independence and dependence, for the latter it fails to capture regions where one variable is more extreme than the other. 
+  A weakness of this model is that it fails to capture regions where one variable is more extreme than the other. 
   To account for varying levels of extremeness, we build upon \cref{eq: stat joint} using different rays $w \in [0, 1]$ from the origin, shown in \cref{eq: stat joint lambda}. 
-  The coefficient of tail dependence is replaced with the \textit{angular dependence function} $\lambda(w)$ (Wadsworth, Tawn, 2013). 
+  The coefficient of tail dependence is replaced with the \textit{angular dependence function} (ADF) $\lambda(w)$ \citep{TawnWadsworth2013}. 
+  This function forms the basis of the work in MBW.
   \begin{equation} \label{eq: stat joint lambda}
-    \lim_{u \to \infty}\mathbb{P}\left(\min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > u \right) = \lim_{u \to \infty} L(e^u; w)e^{-\lambda(w) u}, \qquad \lambda(w) \geq \max(w, 1 - w)
+    \mathbb{P}\left(\min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > u \right) = L(e^u; w)e^{-\lambda(w) u}
   \end{equation}
 
   \subsection{Angular Dependence Function}
-  In this section, let $(X, Y)$ be as before. We will delve further into the theory of $\lambda(w)$, which was first introduced in (Wadsworth, Tawn, 2013) and is given in \cref{eq: stat joint lambda}. 
-  The more general definition considers $\kappa(\alpha, \beta)$ as the angular dependence, however, we use the simple (normalized) formualation with $\alpha = w, \beta = 1 - w$ as the ray.
-  To start, we wish to define some properties for $\lambda(w)$. We call random variable $X, Y$ \textit{positive quandrant dependent} if $\forall (x, y) \in \mathbb{R}^2, \; \mathbb{P}(X \leq x, Y \leq y) \geq \mathbb{P}(X \leq x)\mathbb{P}(Y \leq y)$
+  In this section, let $(X, Y)$ be as before. We will delve further into the theory of $\lambda(w)$, which was first introduced in \citep{TawnWadsworth2013} and is given in \cref{eq: stat joint lambda}. 
+  The more general definition considers $\kappa(\alpha, \beta)$ as the ADF, however, we use the simple formulation with $\alpha = w, \beta = 1 - w$ as the ray.
+  To start, we wish to define some properties for $\lambda(w)$ from \citep{TawnWadsworth2013}. We call random variables $X, Y$ \textit{positive quadrant dependent} if $\forall (x, y) \in \mathbb{R}^2, \; \mathbb{P}(X \leq x, Y \leq y) \geq \mathbb{P}(X \leq x)\mathbb{P}(Y \leq y)$
   \begin{proposition} \label{prop: lambda}
     Let $\lambda(w)$ be as defined in \cref{eq: stat joint lambda}. $w, w_1, w_2 \in [0, 1]$.
     \begin{enumerate}
       \item $\lambda(1) = \lambda(0) = 1$.
-      \item $\max(w, 1 - w) \leq \lambda(w, 1 - w)$.
+      \item $\max(w, 1 - w) \leq \lambda(w)$.
       \item Under positive quadrant dependence, $\lambda(w) \leq 1$.
-      \item $\frac{w_1}{\lambda(w_1)} \leq \frac{w_2}{\lambda(w_2)}$ and $\frac{1 - w_1}{\lambda(w_1)} \geq \frac{1 - w_2}{\lambda(w_2)}$
+      \item If $w_1 \leq w_2$, then $\frac{w_1}{\lambda(w_1)} \leq \frac{w_2}{\lambda(w_2)}$ and $\frac{1 - w_1}{\lambda(w_1)} \geq \frac{1 - w_2}{\lambda(w_2)}$
     \end{enumerate}
   \end{proposition}
 
-  Proofs provided in (APPENDIX). The first three properties give boundary conditions (corresponding to independence) and provide bounds for angular dependence.
-  The fourth is used to prove theoretically viability of the ADF in MBW.
-  Dependence is highest when $\lambda(w) = \max(w, 1 - w)$, and independence occurs when $\lambda(w) = 1$. In general, $\lambda(w)$ is convex with minimum at $\max(w, 1 - w)$.
-  The upper bound on dependence only holds with positive quandrant dependence, which is necessary to ensure the joint tail probability is non-zero.
+  These properties give boundary conditions (corresponding to independence) and provide bounds for angular dependence.
+  Dependence is highest when $\lambda(w) = \max(w, 1 - w)$, and independence occurs when $\lambda(w) = 1$. In general, $\lambda$ is convex though this is not a theoretical guarantee.
+  The upper bound on dependence only holds with positive quadrant dependence, which is necessary to ensure the joint tail probability is non-zero.
+  These properties will be important later as we define the ADF for non-stationary time series.
+  To illustrate the ADF, we plot $\lambda(w)$ for a bivariate Gaussian distribution with varying (positive correlation) $\rho = 0, 0.1,\dots,1$ in \cref{fig: lambda gauss}. The distribution in \cref{eq: stat joint lambda} is satisfied with $\lambda(w) = \frac{1 - 2\rho\sqrt{w(1 - 1)}}{1 - \rho^2}$.
 
-  In relation to EVT, considering the conditional extremal probability of (X, Y) with angular dependence, there is a simple representation analogous to the memory property of exponential, as shown in \cref{eq: cond lambda deriv}.
+  \begin{figure}[h]
+      \centering
+      \includegraphics[scale = 0.5]{lambda_gauss.pdf}
+      \caption{We illustrate the ADF by applying it to a bivariate gaussian distribution with positive correlation. Each curve corresponds to a specific $\lambda$, with the colour gradient representing level of correlation. Red corresponds to $\rho = 0$ and blue corresponds to $\rho = 1$. }
+      \label{fig: lambda gauss}
+    \end{figure}
+ 
+  Applying the ADF to EVT, we consider the conditional extremal probability of (X, Y). There is a simple representation analogous to the memoryless property of exponential distribution, as shown in \cref{eq: cond lambda deriv}. 
   \begin{equation} \label{eq: cond lambda deriv}
-    \lim_{u \to \infty}\mathbb{P}\left(\min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > tu \ \bigg |\ \min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > u \right) = e^{-\lambda(w) t}, \quad t \geq 1
+    \mathbb{P}\left(\min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > tu \ \bigg |\ \min\left(\frac{X}{w}, \frac{Y}{1 - w} \right) > u \right) = e^{-\lambda(w) t}, \quad t \geq 1
   \end{equation}
  
-  To estimate $\lambda(w)$, MBW use the \textit{Hill Estimator}. For a given threshold $u$, $v_{(1)},\dots,v_{(k)}$ are the ordered exceedences of $u$ with $v_i = \min\left(\frac{x_i}{w}, \frac{y_i}{1 - w} \right)$. We can then define the estimate $\hat{\lambda}$ as in \cref{eq: hill}. 
-  For consistency of the hill estimator, we need the number of exceedences to approach $\infty$ as the total observations tend to $\infty$, but the proportion of exceedences to tend to 0.
-  In practice, this assumption can be reasonably satisfied (Resnick).
+  To estimate $\lambda(w)$, MBW use the \textit{Hill Estimator}. For a given threshold $u$ and ray $w$, $v_{(1)}^w,\dots,v_{(k)}^w$ are the ordered exceedances of $u$ with $v_i^w = \min\left(\frac{x_i}{w}, \frac{y_i}{1 - w} \right)$. We can then define the pointwise estimate $\hat{\lambda}$ as in \cref{eq: hill}. 
+  For consistency of the hill estimator, we need the number of exceedances to approach $\infty$ as the total observations tend to $\infty$, but the proportion of exceedances to tend to 0.
+  In practice, this assumption can be reasonably satisfied \citep{Resnick1997}. 
   \begin{equation} \label{eq: hill}
-    \hat{\lambda} = \left( \frac{1}{k - 1}\sum_{i = 1}^{k - 1} \log \frac{v_{(i)}}{v_{(k)}} \right)^{-1}
+    \hat{\lambda}(w) = \left( \frac{1}{k - 1}\sum_{i = 1}^{k - 1} \log \frac{v_{(i)}^w}{v_{(k)}^w} \right)^{-1}
   \end{equation}
   
 
 \section{Main Contributions}
-  We have seen models that attempt to model joint extremes under a variety of conditions. 
-  In this section, we focus on modelling the specific use case of non-stationarity with asymptotic independence, which MBW argue is a novel problem, through the ADF.
+  We have seen models for joint extremes under stationarity, and univariate extremes under non-stationarity. 
+  In this section, we combine these ideas for the specific use case of non-stationarity with asymptotic independence, which MBW argue is a novel problem, through the ADF.
 
   For the remainder of this paper, let $\{ X_t, Y_t\}$  be a non-stationary process with standard, exponential margins (again, these can be obtained with probability integral transform).  
-  Moreover, assume that dependent on some covariates $Z_t \in \mathbb{R}^g$, that $\{ X_t, Y_t \ |\ Z_t\}$ is a stationary process.
-  Let $K_{w, t} = \min\left(\frac{X_t}{w}, \frac{Y_t}{1 - w} \right)$ be the \text{mini-projection} onto ray $w$. We are looking to estimate $\lambda$ in \cref{eq: cond lambda main}.
+  We assume marginal stationarity by normalizing the covariates with a GAM model (this is elaborated on in \cref{sec: study}).
+  This still leaves non-stationarity in the tails as desired.
+  Moreover, assume that conditional on some covariates $\boldsymbol{z_t} \in \mathbb{R}^g$, $\{ X_t, Y_t \ |\ Z_t = \boldsymbol{z_t}\}$ is a stationary process.
+  Let $K_{w, t} = \min\left(\frac{X_t}{w}, \frac{Y_t}{1 - w} \right)$ be the \text{mini-projection} onto ray $w$. We are looking to estimate $\lambda$ by taking the non-stationary versions of \cref{eq: stat joint lambda} and \cref{eq: cond lambda deriv}. The resulting formulation is in \cref{eq: nonstat joint lambda} and \cref{eq: cond lambda main}.
+  \begin{equation} \label{eq: nonstat joint lambda}
+    \mathbb{P}\left(\min\left(\frac{X_t}{w}, \frac{Y_t}{1 - w} \right) > u \ |\ \boldsymbol{z_t}  \right) = L(e^u; w)e^{-\lambda(w \ |\ \boldsymbol{z_t}) u}
+  \end{equation}
   \begin{equation} \label{eq: cond lambda main}
-    \mathbb{P}(K_{w, t} > v \ |\ K_{w, t} > u, Z_t = z_t) \approx e^{-(v - u)\lambda(w \ |\ z_t)} ,\quad v > u
+    \mathbb{P}(K_{w, t} > v \ |\ K_{w, t} > u, \boldsymbol{z_t}) \approx e^{-(v - u)\lambda(w \ |\ \boldsymbol{z_t})} ,\quad v > u
   \end{equation}
 
-  Using the hill estimator, we would get a pointwise estimate for each covariate $Z_t = z_t$ (which we condition on). 
-  We often do not have enough realizations for each $Z_t = z_t$ and so the pointwise estimates will be poor. Moreover, $\lambda(w)$ will not be a smooth function.
-  \cref{eq: cond lambda main} also shows that the exceedences $K_{w, t} - u_{w, t} \ |\ K_{w, t} > u_{w, t}, z_t$ are exponentially distributed with rate $\lambda(w \ |\ z_t)$ through uniqueness of CDF. 
-  This representation can lead to simple likelihood estimates of the ADF but due to non-stationarity, we have an estimate for each time-step, and so the resulting parameter estimates are not consistent (APPENDIX MAYBE). 
-  As such, MBW propose estimating $\lambda(w)$ with a quantile-based method, Bernstein-Bezier polynomials, and GAMs, which we introduce in this section.
+  Using the hill estimator, we would get a pointwise estimate for each $\boldsymbol{z_t}$. 
+  We often do not have enough realizations for each $\boldsymbol{z_t}$ and so the pointwise estimates will be poor. Moreover, $\lambda$ will not be a smooth function.
+  \cref{eq: cond lambda main} also shows that the exceedances $(K_{w, t} - u_{w, t} \ |\ K_{w, t} > u_{w, t}, \boldsymbol{z_t})$ are exponentially distributed with rate $\lambda(w \ |\ \boldsymbol{z_t})$ through uniqueness of CDF. 
+  This representation can lead to simple likelihood estimates of the ADF but due to non-stationarity, we have an estimate for each time-step, and so the resulting parameter estimates are not consistent. 
+  As such, MBW propose estimating $\lambda$ with a quantile-based method, Bernstein-Bezier polynomials, and GAMs, which we introduce in this section.
 
-  \subsection{Quantile-based Estimator}
-    Our first method for estimating $\lambda(w \ |\ z_t)$ is a quantile method using \cref{eq: cond lambda main}.
+  \subsection{Quantile-based Estimator} \label{sec: quant est}
+    Our first method for estimating $\lambda(w \ |\ \boldsymbol{z_t})$ is a quantile method using \cref{eq: cond lambda main}.
     Consider extreme quantiles $q_1 < q_2 < 1$ (generally greater than 0.9). Let $w \in [0, 1]$ be an arbitrary ray.
-    For each time-step $t$, we can find $u_{w, t}$ with $ \mathbb{P}(K_{w, t} > u_{w, t}  \ |\  Z_t = z_t) = 1 - q_1$, and analogously for $v_{w, t}$ and $q_2$.
+    For each time-step $t$, we can find $u_{w, t}$ with $ \mathbb{P}(K_{w, t} > u_{w, t}  \ |\  \boldsymbol{z_t}) = 1 - q_1$ and $v_{w, t}$ with $ \mathbb{P}(K_{w, t} > u_{w, t}  \ |\  \boldsymbol{z_t}) = 1 - q_2$.
     Because we have $1 - q_2 < 1 - q_1$, by monotonicity of CDF we have $v_{w, t} \geq u_{w, t}$ for each $t$. 
     Moreover, assuming strict monotonicity, we have $v_{w, t} > u_{w, t}$, and can use \cref{eq: cond lambda main} to get the estimate $\hat{\lambda}_q$, given in \cref{def: lambda qr}.
     \begin{align} 
@@ -160,55 +180,236 @@ Though there has not been any methods developed for our specific use case, there
       \implies && \hat{\lambda}_q (w \ |\ z_t) &= -\frac{1}{v_{w, t} - u_{w, t}} \log \left(\frac{1 - q_2}{1 - q_1}\right) \label{def: lambda qr}
     \end{align}
 
-    We now have a way to estimate $\lambda(w)$ through a sequence of thresholds $\{ u_{w, t}, v_{w, t}\}$ conditional on $z_t$ and corresponding quantiles. It remains to determine how to get the thresholds from the data.
-    This is commonly done through quantile regression. 
-    We use the standard assumption of linearity in the covariates to estimate $u_{w, t} = z_t^T \pi_u$, where $\pi_u \in \mathbb{R}^g$ is estimated by minimizing the expected loss $\argmin_{\pi \in \mathbb{R}^g} \sum_{i = 1}^n (K_{w, t} - z_t^T\pi)(q_i - \1 _{K_{w, t} < z_t^T\pi})$ (Koenker, 2017) and analogously for $v_{w, t}$.
-
-    A major weakness of this method is that quantiles $q_1, q_2$ are modelled separately, so we cannot guarantee $v_{w, t} \geq u_{w, t}$. 
-    To mitigate this issue, MBW propose to use GAMs from (Andre, 2023), modelling exceedences as a GPD, shown in \cref{eq: gpd biv}. 
-    This is akin to the formulation in \cref{eq: gpd} with constant shape parameter and using link function $h(\tau(z_t)) = \log(\tau(z_t))$. 
-    We take some base threshold $u_{w, t}^*$ correponding to quantile $q < q_1 < q_2$, estimated using the process described above. 
-    We can then estimate $u_{w, t}, v_{w, t}$ from the fitted GPD model as its $\frac{q_1 - q}{1 - q}$ and $\frac{q_2 - q}{1 - q}$ quantiles respectively.
+    We now have a way to estimate $\lambda$ through a sequence of thresholds $\{ u_{w, t}, v_{w, t}\}$ conditional on $\boldsymbol{z_t}$ and corresponding quantiles. To estimate these thresholds from the data, MBW propose using GAMs to model exceedances as a GPD, shown in \cref{eq: gpd biv}. This is akin to the formulation in \cref{eq: gpd} with constant shape parameter and using link function $h(\tau(z_t)) = \log(\tau(z_t))$. 
+    We take some base threshold $u_{w, t}^*$ corresponding to quantile $q < q_1 < q_2$, estimated using standard quantile regression. 
+    We can then estimate $u_{w, t}, v_{w, t}$ from the fitted GPD model as its $\frac{q_1 - q}{1 - q}$ and $\frac{q_2 - q}{1 - q}$ quantiles respectively. This method ensures we have $v_{w, t} > u_{w, t}$ as required. Though the true exceedances are assumed to be exponentially distributed, when using the estimated thresholds, MBW assume GPD.
     MBW show through simulation that these GAM quantile estimates give better estimates of $\lambda(w)$ than standard quantile regression.
     \begin{equation} \label{eq: gpd biv}
-      K_{w, t} - u_{w, t}^* \ |\ K_{w, t} > u_{w, t}^*, Z_t = z_t \sim \GP(\tau(z_t), \xi)
+      (K_{w, t} - u_{w, t}^* \ |\ K_{w, t} > u_{w, t}^*, \boldsymbol{z_t}) \sim \GP(\tau(\boldsymbol{z_t}), \xi)
     \end{equation}
 
-    Our estimates $\hat{\lambda}_q$ are dependent the quantiles $q_1, q_2$ chosen. In fact (EXPLANATION). Hence, MBW use a set of pairs of quantiles $\{ q_{1j}, q_{2j}\}_{j = 1}^m$ with each $q_{1j} < q_{2j} < 1, \; j=1,\dots,m$. 
+    Our estimates $\hat{\lambda}_q$ are dependent on the quantiles $q_1, q_2$ chosen. Hence, MBW use a set of quantile pairs $\{ q_{1j}, q_{2j}\}_{j = 1}^m$ with each $q_{1j} < q_{2j} < 1, \; j=1,\dots,m$. 
     We can then take the estimator $\hat{\lambda}_{qave}$ as shown in \cref{def: lambda qr ave} by averaging over individual $\hat{\lambda}_q$ estimates. 
     MBW also show that this estimator outperforms estimators obtained by a single quantile pair.
     \begin{equation} \label{def: lambda qr ave}
-      \hat{\lambda}_{qave}(w \ |\ z_t) = \frac{1}{m} \sum_{j = 1}^m \hat{\lambda}_q(w \ |\ z_t)
+      \hat{\lambda}_{qave}(w \ |\ \boldsymbol{z_t}) = \frac{1}{m} \sum_{j = 1}^m \hat{\lambda}_q(w \ |\ \boldsymbol{z_t})
     \end{equation}
 
   \subsection{Bernstein-Bezier Polynomial Estimator}
-    
+    In the quantile method, we derive pointwise estimators for $\lambda$, which leads to jumpy estimates of the ADF, and is not practical.
+    To derive a smooth estimator of $\lambda$, MBW use an extension of the Bernstein-Bezier Polynomial (BBP). A BBP is a polynomial in the set given in \cref{def: bbp}.
+    \begin{equation} \label{def: bbp}
+      \mathcal{B}_{k, \boldsymbol{z_t}}^* = \left\{ \sum_{i = 0}^k \beta_i(\boldsymbol{z_t}) {k\choose i} w^i (1 - w)^{k - i} \; : \; \boldsymbol{\beta}(\boldsymbol{z_t}) \in [0, \infty)^{k + 1}, w \in [0, 1] \right\}
+    \end{equation}
+
+    Each BBP $f(w \ |\ \boldsymbol{z_t}) \in \mathcal{B}_{k, \boldsymbol{z_t}}^*$ is uniquely defined by a set of covariate functions $\boldsymbol{\beta} = (\beta_0,\dots,\beta_k)$ with $\beta_i : \mathbb{R}^g \to [0, \infty)$ that are constant with respect to $w$.
+    The degree of the polynomial, $k$, is chosen maximize fit.
+    To determine the optimal BBP, we minimize the absolute error over $\boldsymbol{\beta}$, using $\hat{\lambda}_{qave}$ as the baseline (since we do not know the true $\lambda$ with real data). 
+    This is computed on $\mathcal{W}$, a spanning set of $[0, 1]$ (MBW use $\mathcal{W} = \{ 0,0.01,\dots,1 \}$) and each time-step $t = 1,\dots,n$.
+    In this way, $\hat{\lambda}_{bbp}$ can also be seen as a smooth estimate of the quantile estimator.
+    In lieu of searching over all possible functions $\boldsymbol{\beta}$, MBW restrict the search space to functions of the form $\beta_i(\boldsymbol{z_t}) = h(\boldsymbol{z_t}^T \boldsymbol{\theta_i}), \; i = 1,\dots, k - 1$ ($\beta_0(\boldsymbol{z_t}) = \beta_k(\boldsymbol{z_t}) = 1$ are constant functions to satisfy \cref{prop: lambda}), where $h$ is a chosen link function (e.g. logarithm).
+    Hence the functions $\beta_i$ themselves are deterministic with respect to $h$ and the optimization is transformed from a minimization over functions $\beta_i$ to a minimization over vectors $\boldsymbol{\theta_i} \in \mathbb{R}^g$, shown in \cref{eq: bbp min}.
+    \begin{equation} \label{eq: bbp min}
+      \hat{\lambda}_{bbp} = \argmin_{\theta \in \mathbb{R}^{g(k - 2)}} S(\boldsymbol{\theta}) \qquad S(\boldsymbol{\theta}) = \frac{1}{|\mathcal{W}| n} \sum_{w \in \mathcal{W}}\sum_{t = 1}^n |\hat{\lambda}_{qave}(w \ |\ \boldsymbol{z_t}) - \lambda(w \ |\ \boldsymbol{z_t}, \boldsymbol{\theta_t})| 
+    \end{equation}
+
+  \subsection{GAM-based Estimator}
+    In the BBP method, we fit $\lambda$ as a specific form of polynomial. 
+    To extend this to arbitrary polynomials rather than of a specific form, we can estimate $\lambda$ using GAMs with polynomial splines. 
+    We leverage the exceedance distribution being exponentially distributed with rate $\lambda(w \ |\ z_t)$ and \cref{eq: gpd} to get our GAM formulation $\hat{\lambda}_{g}$ in \cref{eq: gam}
+    \begin{equation} \label{eq: gam}
+      (K_{w, t} - u_{w, t} \ |\ K_{w, t} > u_{w, t}, \boldsymbol{z_t}) \sim \Exp(\lambda(w \ |\ \boldsymbol{z_t})) \qquad h(\hat{\lambda}_{g}(w \ |\ \boldsymbol{z_t})) = \beta_0 + \sum_{k = 1}^g \sum_{p = 1}^{P_k} \beta_{kp}b_{kp}(z_{kt})
+    \end{equation}
+    In \cref{eq: gam}, the left hand side gives the exponential CDF of conditional exceedances for some chosen quantile $q$ and corresponding threshold $u_{w, t}$.
+    The right hand side gives the GAM estimator in terms of a basis $b_{kp}$ and the link function $h_w(x) = \log(x - \max(w, 1 - w))$.
+    MBW choose this link to allow $\lambda(w \ |\ \boldsymbol{z_t}) > 0$, which corresponds to non-positive dependence (note this contradicts the positive quadrant dependence in \cref{prop: lambda}).
+    To estimate the thresholds, MBW use the methods described in \cref{sec: quant est}. 
+    Since $\lambda$ is a function of $w$ given $\boldsymbol{z_t}$, we estimate $\{ u_{w, t} \}$ simultaneously over $w$ and $\boldsymbol{z_t}$.
+    Again, we use a set of quantiles $\{q_i\}_{i = 1}^m$, and average the individual estimates $\hat{\lambda}_{g}$ to obtain $\hat{\lambda}_{gam} = \frac{1}{m}\sum_{i = 1}^m \hat{\lambda}_{g}$, as in \cref{sec: quant est}.
+    MBW shows through simulation that GAM estimators outperform BBP and quantile methods.
+
+  \subsection{Return Curve Estimation}
+    We return to the original goal of estimating return curves. 
+    For a given ray $w \in [0, 1]$, quantile $q$, thresholds $\{u_{w, t}\}_{t = 1}^T$ estimated from \cref{sec: quant est} and $\hat{\lambda}$ we estimate with any of the introduced methods, we define the return curve as in \cref{eq: rc non stat}
+    \begin{align} \label{eq: rc non stat}
+      RC_{\boldsymbol{z_t}}(p) &= \left\{(w(r_{w, t} + u_{w, t}), (1 - w)(r_{w, t} + u_{w, t})) \in \mathbb{R}^2 \ |\  w \in [0, 1] \right\} \\
+      r_{w, t} &= -\frac{1}{\hat{\lambda}(w \ |\ \boldsymbol{z_t})}\log \left( \frac{p}{1 - q} \right)
+    \end{align}
+    It can be shown theoretically that this return curve definition well approximates \cref{eq: rc} for extreme quantiles (\cref{app: return curve}). 
+    As in \cref{sec: quant est}, we take a series of quantiles and average over the resulting return curve points.
+
+\section{Case Study} \label{sec: study}
+  To verify our method for modelling non-stationary extremes, we will conduct a case study on weather data from British Columbia using PCIC datasets. 
+  The analysis is based on a similar case study on UK climate data in MBW.
+  Our specific dataset comes from Summerland, a city in interior British Columbia between various provincial parks. 
+  This contains daily climate data from 2010-2024.
+  A large issue we have seen in the past decades in BC is the almost yearly forest fires, two common causes of which are high temperature and dry conditions, which denote $\{X_t, Y_t\}$.
+  Because our goal is analyzing probability of forest fires, a summertime phenomenon, we restrict the data to days in June, July, and August.
+  \cref{fig: diagnostic} shows the joint distribution of temperature and dryness on the left and the distribution over time of temperature on the right. 
+  The data exhibits clear seasonal non-stationarity in the margins, and a slight shift towards more extreme conditions in the joint distribution.
+  Moreover there is asymptotic independence in the data, as the extremes for temperature and dryness do not occur at the same points, i.e. can nicely fit into a square.
+  As such, this a solid candidate dataset for the modelling methods in MBW.
+
+  \begin{figure}[h]
+    \centering
+    \includegraphics[scale = 0.5]{climate_diagnostic.pdf}
+    \caption{Left: joint distribution of temperature and dryness over time. Colour gradient with red corresponding to 2010 and blue to 2024. Climate noticeably becomes hotter and drier in this time period. Right: temperature over time. Index starts at June 2010. Clear seasonal non-stationarity exhibited with slight positive trend over time.}
+    \label{fig: diagnostic}
+  \end{figure}
+
+  We now describe our algorithm for modelling extremes, based off the case study in MBW (data cleaning process can be seen in the attached code).
+  \begin{enumerate}
+    \item Remove non-stationarity in the body (non-extremes) of the marginals by fitting a GAM with gaussian location-scale link to time. The resulting fit gives mean and standard deviation estimates of the marginals, which we then use to normalize the data. 
+      \begin{equation}
+          X_t^{norm} = \frac{X_t - \mu_t^X}{\sigma_t^X}, \qquad Y_t^{norm} = \frac{Y_t - \mu_t^Y}{\sigma_t^Y}
+      \end{equation}
+    \item Fit GPD's to the tails of each marginal, in our case above the 0.96 quantile. Temperature exhibits seasonal non-stationary, which we remove in the model fit. This is because the likelihood ratio test of non-stationary model against stationary model shows significant deviance. Dryness data does not exhibit non-stationarity and so we fit a standard GPD.
+    \item Transform the data to standard exponential margins through the probability integral transformation. Details in \cref{app: pit}. 
+      \begin{equation}
+        X_t^{exp} = Q(F_x(X_t^{norm})), \qquad Y_t^{exp} = Q(F_y(Y_t^{norm}))
+      \end{equation}
+    $Q(p) = -\log(1 - p)$ is the quantile function of the standard exponential. $F_x, F_y$ are defined piecewise as the empirical distribution of $X_t^{norm}, Y_t^{norm}$ respectively for values under the 0.96 quantile. In the tails it follows the GPD fits from the previous step. 
+    \item Estimate $\lambda$ using BBP on the resulting process $\{X_t^{exp}, Y_t^{exp}\}$, which now have stationary, standard exponential margins. We fit a quintic $k = 5$ polynomial with link function $h(x) = \log(x)$ to the formulation in \cref{def: bbp}. Results shown in \cref{fig: case res}.
+    \item Estimate $\lambda$ using GAM on $\{X_t^{exp}, Y_t^{exp}\}$. Results in \cref{fig: case res gam}
+    \item Estimate the return curve using $\hat{\lambda}_{BBP}$ and thresholds computed as in \cref{sec: quant est}. We model 1 in 10,000 year events, using $p = \frac{1}{91*1000}$ (91 summer days). The resulting values must be converted back into original scale by reversing the transformation and normalization.
+  \end{enumerate}
+
+  \begin{figure}[h]
+    \centering
+    \includegraphics[scale = 0.6]{results_bbp.pdf}
+    \caption{Left: Estimates of $\hat{\lambda}_{BBP}$ in our dataset. Right: Return curves based off of $\hat{\lambda}_{BBP}$ and thresholds estimated with extremal quantile regression. Green dot represents point in 2010 for $w = 0.5$, i.e. joint extreme. In both plots colour gradient goes from red in 2010 to blue in 2024.}
+    \label{fig: case res}
+  \end{figure}
+
+  ADF estimates based on BBP and return curve estimates are presented in \cref{fig: case res}. The results show that joint tail dependence seems to increase over time as $\hat{\lambda}_{BBP}$ decreases. 
+  This corroborates our thoughts from \cref{fig: diagnostic} as the blue points (close to 2024) cluster in the joint extreme, while there is more spread in the red points (earlier years).
+  We also notice negative dependence when $w < 0.2$ or $w > 0.8$ in most years, though this trend decreases over time.
+  This is because there are little to no extreme points when only one variable is extreme, which is especially prevalent for high temperature, low dryness settings ($w < 0.2$).
+  This is also corroborated in \cref{fig: diagnostic}, as there are no points when temperature is high but dryness is not (this is harder to see visually as the scale is different).
+
+  The return curves show the curve for 1 in 10,000 year extreme temperature and dryness events.
+  The relatively square shapes show that there is considerable dependence in that level of extremes, as they occur together.
+  The greater dependence means that forest fires are increasingly likely to occur.
+  The return curves progressively get worse until around 2018 when they start getting slightly less extreme.
+  Looking at the marginals, 1 in 10,000 year extreme temperature is around the mid 40's, which is becoming unfortunately common in British Columbia these days.
+  For example we saw temperatures go up to 44 degrees in 2021 in Summerland.
+  The green dot in \cref{fig: case res} represents the 1 in 10,000 year event in 2010 for $w = 0.5$. 
+  Moved to 2024, this is now only a 1 in 3 year event, and so we have seen a drastic increase in joint extreme dryness and temperature events.
+  In fact, forest fires in British Columbia have caused record damages in the past few years.
+  This analysis is helpful for policy makers and park rangers to be aware of potential forest fire risks.
+  Further refinement of methods in MBW would lead to more confidence in our results, as confidence bands for dependence estimates are shown to be quite wide. 
+  Nonetheless, the applicability of this work is quite significant for forest fire monitoring, and the monitoring of various climate related events in general.
 
 
 
+\section{Discussion}
+    MBW do a good job explaining their model for non-stationary extremes under asymptotic independence, and the accompanying methods to do so.
+    However, there are aspects of their model that can be improved upon and extended.
+    In this section, we will touch on strengths, limitations and extensions of the paper, and give an overall reflection on their writing. 
+
+    \paragraph{Higher Dimensions} An obvious extension to consider is extending MBW's work to higher-dimensions. 
+    In our setting, there are many causes of forest fires, not limited to temperature and dryness.
+    There are no inherent assumptions that cannot be generalized to $n \geq 3$ dimensions.
+    Moreover, there is existing theory on using multivariate GPD to model multivariate extremes \citep{Naveau2024}.
+    We consider a simple extension to the existing model for
+    $n$ predictors. 
+    Let $X_t \in \mathbb{R}^n$ be the explanatory variables.
+    Define the mini-projections $K_{\boldsymbol{w}, t} = \min \left(\frac{X_{1t}}{w_2}, \dots, \frac{X_{(n-1)t}}{w_{n - 1}}, \frac{X_{nt}}{1 - \sum_{i = 1}^{n - 1} w_i} 
+    \right), \; \sum_{i = 1}^{n - 1} w_i \in [0, 1]$.
+    In this way, we have a unique dependence ray parameterized by $w_1,\dots,w_{n - 1}$ .
+    We still define $\lambda(\boldsymbol{w} \ |\ t)$ as in \cref{eq: cond lambda main}, though now it is a function $\lambda: \mathbb{R}^{n - 1} \to \mathbb{R}$. 
+    Essentially, $\lambda$ should capture the pairwise dependence structure between each predictor and map that information to a scalar value. 
+    The properties in \cref{prop: lambda} should be modified for higher dimensions (\cref{app: lambda highdim}).
+    Provided  \cref{eq: cond lambda main} still holds (which is a big assumption), estimating $\lambda$ can be done in the same way as in the bivariate case.
+    As dimensionality increases, the variability of the mini-projections as functions of $\boldsymbol{w}$ will increase.
+    For example, take $X_{it} = i$ and $w_1 = \dots = w_n = \frac{1}{n}$, and perturb by setting $w_1^\prime= \frac{1}{2n}, w_i^\prime = \frac{1}{n} + \frac{1}{2n(n - 1)}, \; i=2,\dots,n$.
+    Then the change $\frac{K_{\boldsymbol{w}^\prime, t}}{K_{\boldsymbol{w}, t}} = \frac{4n^2(n - 1)}{ 2n - 1}$ explodes as $n$ increases. This in turn will cause the threshold sequences $\{u_{\boldsymbol{w}, t}\}$ and hence the exceedance distributions to have more variability with respect to $\boldsymbol{w}$, affecting the smoothness of $\lambda$.
+ 
+
+    \paragraph{Convexity} A point of difference in MBW's estimation of $\lambda$ is that it does not enforce convexity on the resulting $\lambda$ estimates, which differs from other dependence quantification estimators. 
+    For example, the commonly used Pickands Dependence function is theoretically convex \citep{Bucher2011}.
+    Moreover, if $\exists N \in \mathbb{N}$ such that $\forall u \geq N, \delta_1, \delta_2, \epsilon_1, \epsilon_2 \geq 0, \delta_1 + \epsilon > 0, \delta_2 + \epsilon_2 > 0$, \cref{prop: convex lambda} holds, then $\lambda$ is convex \citep{TawnWadsworth2013}. 
+    \begin{equation} \label{prop: convex lambda}
+      \mathbb{P}(X_t > (\delta_1 + \delta_2) u, Y_t > (\epsilon_1 + \epsilon_2) u) >  \mathbb{P}(X_t > \delta_1 u, Y_t > \epsilon_1  u) \mathbb{P}(X_t > \delta_2 u, Y_t > \epsilon_2  u)
+    \end{equation}
+    Convexity allows us to compare levels of positive quadrant dependence, or \textit{concordance} \citep{TawnWadsworth2013}, thereby improving interperability. 
+    Convexity is not enforced in any of MBW's estimation methods, as seen in the simulation results.
+    This is immediately clear from \cref{def: lambda qr} because the thresholds are modeled separately and hence will not preserve convexity unless $\{v_{w, t}\}$ strictly outgrows $\{u_{w, t}\}$ as $w$ increases (or shrinks by less) to a certain point before strictly growing slower (or shrinking more).
+    This implies there is a specific ray where the $q_2$ quantile is farthest from the $q_1$ quantile for some $q_2 > q_1$, corresponding to a single `most extreme' region.
+    On the contrary, a non-convex $\lambda$ likely means multiple extreme regions.
+    The former is far more likely observed in real data and so it may be worthwhile to investigate whether convexity improves estimation in practice. 
+    When using the GAM estimate, we can make $\lambda$ more convex through a penalization term in the spline fit.
 
 
+    \paragraph{Positive Dependence} Another classical property that MBW does not enforce is \cref{prop: lambda}.3, as ostensibly they do not require positive quadrant dependence in their model.
+    In fact, they allow for negative correlation as well, that is when $\lambda(w \ |\ z_t) > 1$.
+    This hurts interpretability as the unboundedness of $\lambda$ means we cannot determine the level of dependence.
+    Under positive quadrant dependence, there are explicit upper and lower bounds, that is $\max(w, 1 - w) \leq \lambda(w \ |\ z_t) \leq 1$. 
+    The relative distance of $\lambda$ to these bounds gives an idea of the level of dependence, which is not possible when the theoretical upper bound is $\infty$.
+    MBW illustrate an example modelling extremes for a bivariate normal distribution with negative correlation, and the resulting $\lambda$ values range from 1 to 10, which seems a rather arbitrary upper bound.
+    In general when data $(X, Y)$ exhibits negative dependence, we can simply flip one of the predictors and work in the positive quadrant, i.e. with $(X, -Y)$.
+    Many examples in MBW have $\lambda(w \ |\ z_t) > 1$ around the endpoints 0 and 1, which means that there are no (or very few) extreme points for the marginals.
+    There is the possibility that the dependence sign changes over time, which in practice has large ramifications, and so not assuming positive quadrant dependence would be prudent in this case.
 
+    \paragraph{Assumptions} An overarching issue with MBW's methods is they do not implicitly satisfy assumptions. That is, we require post-processing steps to satisfy the bounds in \cref{prop: lambda}.2 and \cref{prop: lambda}.4, which restricts $\lambda$ to lie above the lines $\lambda = -w + 1$ and $\lambda = w - 1$ and slows rate of change. To this end, we simply increase $\lambda(w \ |\ \boldsymbol{z_t})$ to satisfy the bounds at rays $w$ where it is violated. 
+    The processed estimates are shown to perform better than the unmodified versions of $\lambda$ but nonetheless it points to algorithmic weaknesses that MBW's methods do not satisfy these theoretical properties. 
+    With GAM estimation, we can enforce this property by penalizing deviation from the above properties.
+    It requires further testing to determine whether this in fact increases estimation accuracy.
 
-
-
-
-  \subsection{Limitations}
-
+    \paragraph{Paper Reflection} MBW do a fine job describing their specific problem and the methods undertaken to solve it. 
+    A number of novel ideas have been introduced that help in the estimation of ADF's.
+    Clearly, a lot of thought and creativity have been undertaken to complete this thesis.
+    Beyond the aforementioned limitations from this section, the main issue with this paper is that it glosses over theory, and leaves it to be filled in by the reader, oftentimes in the form of neutral citations.
+    This may be fine for someone with in-depth knowledge of EVT, but is not accessible to more beginner readers.
+    Moreover, they dump a lot of information on the reader, and leave it up to us to interpret what is useful. Overall, I learned a lot from this paper and EVT as a whole, and liked the theoretical challenges it provided coming from a limited EVT background.
 
 
 
 
 \newpage
-\section{test}
-
-We made amazing contributions to the world of musical fractal pasta 
-\citep{McDonald2017,Tibshirani2013}. We use Natbib, so be sure to use
-\citep{Stein1981} for parenthetical references. Or you can say, according to
-\citet{HastieTibshirani2009}, we should strive to balance truth and lies.
-
 
 \bibliographystyle{rss}
 \bibliography{qp.bib}
+
+\newpage
+
+\section{Appendix}
+
+  \subsection{Probability Integral Transform} \label{app: pit}
+    In order to get standard exponential margins, we first transform our data to standard uniform, and then take the quantile of the exponential. That is for a random variable $X$, $F_e^{-1}(F_x(X)) \sim \Exp(1)$ where $F_e^{-1}$ is the quantile function of the standard exponential and $F_x$ is the CDF of $X$. We see this in the following equations.
+    \begin{equation}
+      \mathbb{P}(F_e^{-1}(F_x(X)) \leq x) = \mathbb{P}(X \leq F_x^{-1}(F_e(x))) = F_x(F_x^{-1}(F_e(x))) = F_e(x)
+    \end{equation}
+    Hence this transformation will give us standard exponential margins.
+
+  \subsection{Return Curve Estimation} \label{app: return curve}
+    We wish to show the return curve in \cref{eq: rc non stat} satisfies \cref{eq: rc}. That is the joint probability of points in this set is $p$. Let $(x_{w, t}, y_{w, t})$ be from the set in \cref{eq: rc non stat} with corresponding quantile $q$ and threshold $u_{w, t}$.
+    \begin{align}
+      \mathbb{P}(X_t > x_{w, t}, Y_t > y_{w, t} \ |\ \boldsymbol{z_t}) &= \mathbb{P}(K_{w, t} > r_{w, t} + u_{w, t} \ |\ \boldsymbol{z_t}) \\
+      &= \mathbb{P}(K_{w, t} > r_{w, t} + u_{w, t} \ |\ K_{w, t} > u_{w, t}, \boldsymbol{z_t})\mathbb{P}(K_{w, t} > u_{w, t} \ |\ \boldsymbol{z_t}) \\
+      &\approx \exp(-r_{w, t} \lambda(w \ |\ \boldsymbol{z_t})) \mathbb{P}(K_{w, t} > u_{w, t} \ |\ \boldsymbol{z_t}) \\
+      &= \frac{p}{1 - q}(1 - q) \\
+      &= p
+    \end{align}
+    The fourth equality stems directly from the definitions $r_{w, t}$ and $u_{w, t}$.
+
+  \subsection{GAM estimate of $\lambda$ in Case Study} 
+    For completion, we provide the $\hat{\lambda}_{GAM}$ estimates in \cref{fig: case res gam}, though they only provide pointwise estimates.
+    \begin{figure}[h]
+      \centering
+      \includegraphics[scale = 0.5]{results_gam.pdf}
+      \caption{Estimates of $\hat{\lambda}_{GAM}$ in our dataset. Colour gradient goes from red in 2010 to blue in 2024.}
+      \label{fig: case res gam}
+    \end{figure}
+
+  \subsection{Properties of $\lambda$ in Higher Dimensions} \label{app: lambda highdim}
+    We modify the properties given in \cref{prop: lambda} for $n$ dimensions.
+    \begin{enumerate}
+      \item $\lambda(e_i) = \lambda(0) = 1$ for each $i = 1,\dots,n-1$ where $e_i \in \mathbb{R}^{n - 1}$ is the identity vector.
+      \item $\max(w_1,\dots,w_{n -1}, 1 - \sum_{i = 1}^{n - 1} w_i) \leq \lambda(w)$.
+      \item Under positive quadrant dependence, $\lambda(\boldsymbol{w}) \leq 1$ (this stays the same for higher dimensional $\boldsymbol{w}$).
+      \item If $\boldsymbol{w}_1 \leq \boldsymbol{w}_2$, then $\frac{\boldsymbol{w}_1}{\lambda(\boldsymbol{w}_1)} \leq \frac{\boldsymbol{w}_2}{\lambda(\boldsymbol{w}_2)}$ and $\frac{1 - \boldsymbol{w}_1}{\lambda(\boldsymbol{w}_1)} \geq \frac{1 - \boldsymbol{w}_2}{\lambda(\boldsymbol{w}_2)}$. This again stays the same but we need each inequality to hold coordinate-wise.
+    \end{enumerate}
+
 
 \end{document}
